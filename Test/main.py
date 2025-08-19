@@ -2,7 +2,6 @@ import pgzero
 from pygame import Rect
 from pygame.image import load # importing load function to load the tileset
 import random as rand
-import time
 
 class Character:
     def __init__(self, hp, attack, pos):
@@ -10,6 +9,7 @@ class Character:
         self.max_hp = hp
         self.attack = attack
         self.pos = pos
+        self.attacked = False
 
     def attack(self, target, attack, precision):
         d20 = rand.randint(1, 20)
@@ -17,11 +17,13 @@ class Character:
 
         if d20 == 1 or d20 + precision < 9:
             dammage = 0
-            return 'Missed!'
+            print(f'{self.__class__.__name__} missed! (rolled {d20})')
         elif d20 == 20:
             dammage *= 2
             target.hp -= dammage
-            return 'Critic!'
+            print(f'{self.__class__.__name__} landed a critic! (rolled {d20})')
+        else:
+            print(f'{self.__class__.__name__} rolled {d20} and caused {dammage} dammage!')
         
         target.hp -= dammage
         return None
@@ -98,27 +100,30 @@ class Knight(Character):
 
                 if self.attack_frame_count < 10:
                     self.knight.image = self.attack_sprites[self.last_pressed][0]
+                    self.attacked = False
                 elif self.attack_frame_count < 15:
                     self.knight.image = self.attack_sprites[self.last_pressed][1]
                 elif self.attack_frame_count < 20:
                     self.knight.image = self.attack_sprites[self.last_pressed][2]
                     for enemy in enemies:
                         distance_to_enemy = ((self.knight.x - enemy.devil.x)**2 + (self.knight.y - enemy.devil.y)**2)**0.5
-                        attack = False
+                        hit = False
                         if self.last_pressed == 'w' and enemy.devil.y < self.knight.y and distance_to_enemy <= self.attack_range:
-                            attack = True
+                            hit = True
                         elif self.last_pressed == 's' and enemy.devil.y > self.knight.y and distance_to_enemy <= self.attack_range:
-                            attack = True
+                            hit = True
                         elif self.last_pressed == 'a' and enemy.devil.x < self.knight.x and distance_to_enemy <= self.attack_range:
-                            attack = True
+                            hit = True
                         elif self.last_pressed == 'd' and enemy.devil.x > self.knight.x and distance_to_enemy <= self.attack_range:
-                            attack = True
+                            hit = True
 
-                        if attack:
+                        if hit and not self.attacked:
                             super().attack(enemy, self.attack, self.precision)
-
-                        if enemy.hp <= 0 and rand.randint(1, 4) == 4:
-                            self.hp = min(self.hp + enemy.max_hp * .01, self.max_hp)
+                            self.attacked = True
+                
+                        if enemy.hp <= 0:
+                            print(enemy.hp)
+                            self.hp = min(self.hp + enemy.max_hp * .05, self.max_hp)
 
                 else:
                     self.attack_frame_count = 0
@@ -152,8 +157,7 @@ class Knight(Character):
                     self.mov_frame_count = 0
         else:
             self.knight.image = 'knight/dead'
-
-    
+ 
     def draw(self):
         self.knight.draw()
 
@@ -200,13 +204,15 @@ class Devil(Character):
 
                 if self.attack_frame_count < self.attack_frame_delay[self.attack_frame_index]:
                     self.devil.image = self.attack_sprites[self.attack_frame_index]
-                    if self.attack_frame_index == 4 and (distance[0]**2 + distance[1]**2)**0.5 <= 2:
+                    if self.attack_frame_index == 4 and (distance[0]**2 + distance[1]**2)**0.5 <= 2 and not self.attacked:
                         super().attack(main_char, self.attack, self.precision)
+                        self.attacked = True
                     return
 
                 elif self.attack_frame_index < len(self.attack_frame_delay)-1:
                     self.attack_frame_index += 1
                     return
+                self.attacked = False
 
 
             elif abs(distance[0]) > abs(distance[1]):
