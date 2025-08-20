@@ -58,6 +58,7 @@ class Knight(Character):
         self.mov_index = 0
         self.idle_frame_count = 0
         self.mov_frame_count = 0
+        self.regen_frame_count = 0
         self.attack_frame_count = 0
         self.switch_delay = 15 # 30 frames = 0.5 sec
         self.knight = Actor('knight/idle_down/1')
@@ -122,13 +123,17 @@ class Knight(Character):
                             self.attacked = True
                 
                         if enemy.hp <= 0:
-                            print(enemy.hp)
                             self.hp = min(self.hp + enemy.max_hp * .05, self.max_hp)
 
                 else:
                     self.attack_frame_count = 0
                 return
             self.attack_frame_count = 0
+
+            self.regen_frame_count += 1
+            if self.regen_frame_count == 60:
+                self.regen_frame_count = 0
+                self.hp = min(self.hp * 1.005, self.max_hp)
 
             match(self.last_pressed):
                 case 'w':
@@ -379,14 +384,14 @@ class Menu:
 WIDTH = 400
 HEIGHT = 300
 
-main_char = Knight(step=3, hp=100, attack=3, pos=(WIDTH//2, HEIGHT//2))
+main_char = Knight(step=3, hp=100, attack=5, pos=(WIDTH//2, HEIGHT//2))
 level = Map()
 main_menu = Menu()
 
 game_started = False
 devil_spawn = rand.randint(1, 10) * 60
 devil_spawn_count = 0
-devils= [Devil(step=1, hp=10, attack=1, pos=(rand.randint(1, 400),rand.randint(1, 300)))]
+devils= []
 
 def draw():
     screen.clear()
@@ -430,10 +435,10 @@ def update():
             main_char.move(devils)
             if devil_spawn_count == devil_spawn:
                 for i in range(rand.randint(1, 4)):
-                    new_devil = Devil(step=rand.randint(1, 2), hp=rand.randint(5, 15), attack=rand.randint(1, 3), pos=(rand.randint(20, 380),rand.randint(20, 280)))
+                    new_devil = Devil(step=rand.randint(1, 3), hp=rand.randint(5, 10), attack=rand.randint(1, 3), pos=(rand.randint(20, 380),rand.randint(20, 280)))
                     new_devil.draw()
                     devils.append(new_devil)
-                devil_spawn = rand.randint(1, 6) * 60
+                devil_spawn = rand.randint(5, 10) * 60
                 devil_spawn_count = 0
             else:
                 devil_spawn_count += 1
